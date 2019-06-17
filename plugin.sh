@@ -16,9 +16,9 @@ check_plugin_vars() {
     for e in \
         PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID,"" \
         PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY,"" \
-        PLUGIN_REGION,AWS_DEFAULT_REGION,us-east-1 \
-		PLUGIN_CLUSTER,AWS_ECS_CLUSTER,default \
-		PLUGIN_CNF_STACK,AWS_CNF_STACK,${AWS_ECS_CLUSTER} \
+        PLUGIN_REGION,AWS_REGION,${AWS_DEFAULT_REGION} \
+		PLUGIN_CLUSTER,ECS_CLUSTER,${AWS_ECS_DEFAULT_CLUSTER} \
+		PLUGIN_CNF_STACK,AWS_CNF_STACK,${ECS_CLUSTER} \
 		PLUGIN_LAUNCH_TYPE,AWS_LAUNCH_TYPE,EC2 \
 		PLUGIN_ECS_PROFILE,ECS_PROFILE,drone \
 		PLUGIN_COMPOSE_FILE,COMPOSE_FILE,docker-compose.yml \
@@ -59,9 +59,9 @@ ecs-cli configure profile \
 
 # Configure esc-cli
 ecs-cli configure \
-	--cluster "${AWS_ECS_CLUSTER}" \
+	--cluster "${ECS_CLUSTER}" \
 	--default-launch-type "${AWS_LAUNCH_TYPE}" \
-	--region "${AWS_DEFAULT_REGION}" \
+	--region "${AWS_REGION}" \
 	--cfn-stack-name "${AWS_CNF_STACK}"
 
 # Create Task Definitions
