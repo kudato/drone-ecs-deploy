@@ -9,6 +9,8 @@ RUN apk add --no-cache --virtual .deps gnupg curl \
 	&& apk del .deps
 
 ENV \
+	AWS_DEFAULT_REGION=us-east-1 \
+	ECS_DEFAULT_CLUSTER=default \
 	ECS_CLI_VERSION="$(ecs-cli --version)" \
 	CMD_USER=ecs-cli
 
