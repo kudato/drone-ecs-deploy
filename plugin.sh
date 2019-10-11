@@ -1,50 +1,32 @@
 #!/usr/bin/env bash
+source /usr/bin/lib.sh
 
-export_var() {
-    local var
-    var="${1}"
-    if [ -n "${!var}" ]
-    then
-        export "$2"="${!var}"
-    else
-        export "$2"="${3}"
-    fi
-}
+for i in \
+    PLUGIN_DEPLOY_TAG,DEPLOY_TAG=latest \
+    PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID="" \
+    PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY="" \
+    PLUGIN_REGION,AWS_REGION,AWS_DEFAULT_REGION=us-east-1 \
+    PLUGIN_CLUSTER,ECS_CLUSTER=default \
+    PLUGIN_CNF_STACK,AWS_CNF_STACK=${ECS_CLUSTER} \
+    PLUGIN_LAUNCH_TYPE,AWS_LAUNCH_TYPE=EC2 \
+    PLUGIN_ECS_PROFILE,ECS_PROFILE=drone \
+    PLUGIN_COMPOSE_FILE,COMPOSE_FILE=docker-compose.yml \
+    PLUGIN_PARAMS_FILE,ECS_PARAMS_FILE=ecs-params.yml \
+    PLUGIN_SERVICE,ECS_SERVICE=${PWD##*/} \
+    PLUGIN_DEPLOYMENT_MAX_PERCENT,DEPLOYMENT_MAX_PERCENT=200 \
+    PLUGIN_DEPLOYMENT_MIN_HEALTHY_PERCENT,DEPLOYMENT_MIN_HEALTHY_PERCENT=100 \
+    PLUGIN_TIMEOUT,TIMEOUT=10 \
+    PLUGIN_TARGET_GROUP_ARN,TARGET_GROUP_ARN="" \
+    PLUGIN_CONTAINER_NAME,CONTAINER_NAME=server \
+    PLUGIN_CONTAINER_PORT,CONTAINER_PORT=8000 \
+    PLUGIN_ROLE_ARN,PLUGIN_TASK_ROLE_ARN,TASK_ROLE_ARN=none \
+    PLUGIN_HEALTH_CHECK_GRACE_PERIOD,HEALTH_CHECK_GRACE_PERIOD=15
+do
+    defaultEnv "${i}"
+done
+sed -i "s|{{tag}}|${DEPLOY_TAG}|g" "${COMPOSE_FILE}"
 
-check_plugin_vars() {
-    OLDIFS=$IFS; IFS=','
-    for e in \
-        PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID,"" \
-        PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY,"" \
-        PLUGIN_REGION,AWS_REGION,${AWS_DEFAULT_REGION} \
-        PLUGIN_CLUSTER,ECS_CLUSTER,${AWS_ECS_DEFAULT_CLUSTER} \
-        PLUGIN_CNF_STACK,AWS_CNF_STACK,${ECS_CLUSTER} \
-        PLUGIN_LAUNCH_TYPE,AWS_LAUNCH_TYPE,EC2 \
-        PLUGIN_ECS_PROFILE,ECS_PROFILE,drone \
-        PLUGIN_COMPOSE_FILE,COMPOSE_FILE,docker-compose.yml \
-        PLUGIN_PARAMS_FILE,ECS_PARAMS_FILE,ecs-params.yml \
-        PLUGIN_SERVICE,ECS_SERVICE,${PWD##*/} \
-        PLUGIN_DEPLOYMENT_MAX_PERCENT,DEPLOYMENT_MAX_PERCENT,200 \
-        PLUGIN_DEPLOYMENT_MIN_HEALTHY_PERCENT,DEPLOYMENT_MIN_HEALTHY_PERCENT,100 \
-        PLUGIN_TIMEOUT,TIMEOUT,10 \
-        PLUGIN_TARGET_GROUP_ARN,TARGET_GROUP_ARN,"" \
-        PLUGIN_CONTAINER_NAME,CONTAINER_NAME,server \
-        PLUGIN_CONTAINER_PORT,CONTAINER_PORT,8000 \
-        PLUGIN_HEALTH_CHECK_GRACE_PERIOD,HEALTH_CHECK_GRACE_PERIOD,15
-    do
-        set -- $e
-        export_var "$1" "$2" "$3"
-    done
-    IFS=$OLDIFS
-}
 
-if ! check_plugin_vars
-then
-    echo "Seems something went wrong."
-    exit 1
-fi
-
-# Configure esc-cli profile
 if [ -f ~/.ecs/config ]; then rm ~/.ecs/config; fi
 ecs-cli configure profile \
     --profile-name "${ECS_PROFILE}" \
@@ -55,27 +37,31 @@ ecs-cli configure profile \
 ecs-cli configure \
     --cluster "${ECS_CLUSTER}" \
     --default-launch-type "${AWS_LAUNCH_TYPE}" \
-    --region "${AWS_REGION}" \
+    --region "${AWS_DEFAULT_REGION}" \
     --cfn-stack-name "${AWS_CNF_STACK}"
 
-# Create Task Definitions and Deploy
+# base ecs-cli deployment
+curry deploy ecs-cli compose -f "${COMPOSE_FILE}" --project-name "${ECS_SERVICE}" \
+    service up \
+        --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
+        --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
+        --timeout "${TIMEOUT}" \
+        --launch-type "${AWS_LAUNCH_TYPE}"
+
+export DEPLOY_CMD=deploy
+if [[ "${TASK_ROLE_ARN}" != "none" ]]
+then
+    curry withrole deploy --task-role-arn "${TASK_ROLE_ARN}"
+    export DEPLOY_CMD=withrole
+fi
+
 if [ -n "${TARGET_GROUP_ARN}" ]
 then
-    ecs-cli compose -f "${COMPOSE_FILE}" --project-name "${ECS_SERVICE}" \
-        service up \
-            --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
-            --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
-            --container-name "${CONTAINER_NAME}" \
-            --container-port "${CONTAINER_PORT}" \
-            --target-group-arn "${TARGET_GROUP_ARN}" \
-            --timeout "${TIMEOUT}" \
-            --launch-type "${AWS_LAUNCH_TYPE}" \
-            --health-check-grace-period "${HEALTH_CHECK_GRACE_PERIOD}"
+    ${DEPLOY_CMD} \
+        --target-group-arn "${TARGET_GROUP_ARN}" \
+        --container-name "${CONTAINER_NAME}" \
+        --container-port "${CONTAINER_PORT}" \
+        --health-check-grace-period "${HEALTH_CHECK_GRACE_PERIOD}"
 else
-    ecs-cli compose -f "${COMPOSE_FILE}" --project-name "${ECS_SERVICE}" \
-        service up \
-            --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
-            --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
-            --timeout "${TIMEOUT}" \
-            --launch-type "${AWS_LAUNCH_TYPE}"
+    ${DEPLOY_CMD}
 fi

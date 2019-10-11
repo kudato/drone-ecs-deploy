@@ -1,18 +1,11 @@
-FROM kudato/baseimage:alpine3.9
+FROM kudato/baseimage:alpine
 
-COPY plugin.sh prepare.sh /
+RUN curl -o /usr/local/bin/ecs-cli \
+    https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest
 
-RUN apk add --no-cache --virtual .deps gnupg curl \
-    && curl -o /usr/local/bin/ecs-cli \
-        https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest \
-    && chmod +x /usr/local/bin/ecs-cli /plugin.sh  \
-    && apk del .deps
+COPY plugin.sh /
+RUN chmod +x /usr/local/bin/ecs-cli /plugin.sh
 
-ENV \
-    AWS_DEFAULT_REGION=us-east-1 \
-    ECS_DEFAULT_CLUSTER=default \
-    ECS_CLI_VERSION="$(ecs-cli --version)" \
-    INIT_SH=/prepare.sh \
-    CMD_USER=ecs-cli
-
+ENV ECS_CLI_VERSION="$(ecs-cli --version)"
+WORKDIR /src
 CMD [ "/plugin.sh" ]
