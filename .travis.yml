@@ -1,0 +1,14 @@
+language: bash
+services:
+  - docker
+
+before_install:
+- echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin &>/dev/null
+
+env:
+  global:
+  - DOCKER_HUB_IMAGE=kudato/drone-ecs-deploy
+
+script:
+  - docker build -t "${DOCKER_HUB_IMAGE}:${TRAVIS_COMMIT:0:7}" .
+  - docker push "${DOCKER_HUB_IMAGE}:${TRAVIS_COMMIT:0:7}"
