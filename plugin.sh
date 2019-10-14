@@ -19,7 +19,7 @@ for i in \
     PLUGIN_TARGET_GROUP_ARN,TARGET_GROUP_ARN="" \
     PLUGIN_CONTAINER_NAME,CONTAINER_NAME=server \
     PLUGIN_CONTAINER_PORT,CONTAINER_PORT=8000 \
-    PLUGIN_ROLE_ARN,PLUGIN_TASK_ROLE_ARN,TASK_ROLE_ARN=none \
+    PLUGIN_ROLE_ARN,TASK_ROLE_ARN=none \
     PLUGIN_HEALTH_CHECK_GRACE_PERIOD,HEALTH_CHECK_GRACE_PERIOD=15
 do
     defaultEnv "${i}"
@@ -40,28 +40,30 @@ ecs-cli configure \
     --region "${AWS_DEFAULT_REGION}" \
     --cfn-stack-name "${AWS_CNF_STACK}"
 
-# base ecs-cli deployment
-curry deploy ecs-cli compose -f "${COMPOSE_FILE}" --project-name "${ECS_SERVICE}" \
-    service up \
-        --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
-        --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
-        --timeout "${TIMEOUT}" \
-        --launch-type "${AWS_LAUNCH_TYPE}"
-
-export DEPLOY_CMD=deploy
 if [[ "${TASK_ROLE_ARN}" != "none" ]]
 then
-    curry withrole deploy --task-role-arn "${TASK_ROLE_ARN}"
-    export DEPLOY_CMD=withrole
+    curry pdeploy \
+    ecs-cli compose -f "${COMPOSE_FILE}" --task-role-arn "${TASK_ROLE_ARN}"
+else
+    curry pdeploy \
+    ecs-cli compose -f "${COMPOSE_FILE}"
 fi
 
+curry deploy pdeploy --project-name "${ECS_SERVICE}" \
+        service up \
+            --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
+            --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
+            --timeout "${TIMEOUT}" \
+            --launch-type "${AWS_LAUNCH_TYPE}"
+
+echo "Starting deploy to ${ECS_CLUSTER}"
 if [ -n "${TARGET_GROUP_ARN}" ]
 then
-    ${DEPLOY_CMD} \
+    deploy \
         --target-group-arn "${TARGET_GROUP_ARN}" \
         --container-name "${CONTAINER_NAME}" \
         --container-port "${CONTAINER_PORT}" \
         --health-check-grace-period "${HEALTH_CHECK_GRACE_PERIOD}"
 else
-    ${DEPLOY_CMD}
+    deploy
 fi
