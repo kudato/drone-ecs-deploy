@@ -2,7 +2,8 @@
 
 [![](https://images.microbadger.com/badges/image/kudato/drone-ecs-deploy.svg)](https://microbadger.com/images/kudato/drone-ecs-deploy "Get information about this image.")
 
-This [Drone](https://drone.io/) plugin is just a wrapper for [ecs-cli](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/ECS_CLI.html). It uses the ability to create a task definition from the docker-compose file, supports the [ecs-params](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-ecsparams.html) file as a source of additional parameters and the association of the launched containers with the target group of the elastic load balancer. You can find more details about using docker-compose and ecs-params [here](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/ECS_CLI.html) and [here](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-ecsparams.html), respectively.
+This [Drone](https://drone.io/) plugin is just a wrapper for [ecs-cli](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/ECS_CLI.html). It uses the ability to create a task definition from the docker-compose file, supports the [ecs-params](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-ecsparams.html) file as a source of additional parameters and the association of the launched containers with the target group of the elastic load balancer. You can find more details about using docker-compose [here](https://docs.aws.amazon.com/en_us/AmazonECS/latest/developerguide/ECS_CLI.html).
+
 
 ### Usage
 
