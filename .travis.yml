@@ -12,3 +12,8 @@ env:
 script:
   - docker build -t "${DOCKER_HUB_IMAGE}:${TRAVIS_COMMIT:0:7}" .
   - docker push "${DOCKER_HUB_IMAGE}:${TRAVIS_COMMIT:0:7}"
+  - |
+    if [[ $TRAVIS_BRANCH == "master" ]]; then
+      docker tag "${DOCKER_HUB_IMAGE}:${TRAVIS_COMMIT:0:7}" "${DOCKER_HUB_IMAGE}:latest"
+      docker push "${DOCKER_HUB_IMAGE}:latest"
+    fi
