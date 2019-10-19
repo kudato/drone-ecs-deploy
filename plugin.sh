@@ -40,16 +40,17 @@ ecs-cli configure \
     --region "${AWS_DEFAULT_REGION}" \
     --cfn-stack-name "${AWS_CNF_STACK}"
 
+
+export \
+_DEPLOY_CMD="ecs-cli compose -f ${COMPOSE_FILE}"
+
 if [[ "${TASK_ROLE_ARN}" != "none" ]]
 then
-    curry pdeploy \
-    ecs-cli compose -f "${COMPOSE_FILE}" --task-role-arn "${TASK_ROLE_ARN}"
-else
-    curry pdeploy \
-    ecs-cli compose -f "${COMPOSE_FILE}"
+    export \
+    _DEPLOY_CMD="${_DEPLOY_CMD} --task-role-arn ${TASK_ROLE_ARN}"
 fi
 
-curry deploy pdeploy --project-name "${ECS_SERVICE}" \
+curry deploy ${_DEPLOY_CMD} --project-name "${ECS_SERVICE}" \
         service up \
             --deployment-max-percent "${DEPLOYMENT_MAX_PERCENT}" \
             --deployment-min-healthy-percent "${DEPLOYMENT_MIN_HEALTHY_PERCENT}" \
