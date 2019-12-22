@@ -42,7 +42,7 @@ ecs-cli configure \
 
 
 export \
-_DEPLOY_CMD="ecs-cli compose -f ${COMPOSE_FILE}"
+_DEPLOY_CMD="ecs-cli compose -f ${COMPOSE_FILE} --ecs-params ${ECS_PARAMS_FILE}"
 
 if [[ "${TASK_ROLE_ARN}" != "none" ]]
 then
